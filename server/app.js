@@ -4,12 +4,13 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import {connection} from "./database/dbConnection.js";
 import { errorMiddleware } from './middlewares/error.js';
+import userRouter from "./routes/userRouter.js";
 
 export const app = express();
 config({path:"./config.env"})
 
 app.use(cors({
-    origin: ["http://localhost:3000",process.env.FRONTEND_URL],
+    origin: ["http://localhost:4000",process.env.FRONTEND_URL],
     methods:["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }))
@@ -17,6 +18,8 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
+
+app.use("/api/v1/user",userRouter);
 
 connection();
 
