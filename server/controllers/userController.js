@@ -134,7 +134,7 @@ function generateEmailTemplate(verificationCode) {
 
 
 export const verifyOTP = catchAsyncError(async(req,res,next)=>{
-  const { email , otp,phone} = req.body()
+  const { email , otp,phone} = req.body
   if (!email || !otp || !phone ) {
     return;
   }
@@ -168,7 +168,7 @@ export const verifyOTP = catchAsyncError(async(req,res,next)=>{
         user = userAllEntries[0];
 
         await User.deleteMany({
-          _id:{$ne: user,_id},
+          _id:{$ne: user._id},
           $or:[
             {phone,accountVerified:false},
             {email,accountVerified:false}
@@ -186,7 +186,7 @@ export const verifyOTP = catchAsyncError(async(req,res,next)=>{
       const CurrentTime = Date.now();
       const verifecationCodeExpire = new Date(user.verificationCodeExpire).getTime() ;
 
-      if (customElements > verifecationCodeExpire) {
+      if (CurrentTime  > verifecationCodeExpire) {
         return next(new ErrorHandler("OTP Expire",400))
       };
 
