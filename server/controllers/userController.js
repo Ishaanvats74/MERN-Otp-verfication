@@ -3,6 +3,7 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { User } from "../models/userModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import twilio from "twilio";
+import { sendToken } from "../utils/sendToken.js";
 
 
 const client = twilio(process.env.TWILIO_SID,process.env.TWILIO_TOKEN)
@@ -129,4 +130,74 @@ function generateEmailTemplate(verificationCode) {
         <p style="font-size: 12px; color: #aaa;">This is an automated message. Please do not reply to this email.</p>
       </footer>
     </div>`;
-}
+};
+
+
+export const verifyOTP = catchAsyncError(async(req,res,next)=>{
+  const { email , otp,phone} = req.body()
+  if (!email || !otp || !phone ) {
+    return;
+  }
+  function validatePhoneNumber(phone) {
+      const phoneRegex = /^\+91\d{10}$/;
+      return phoneRegex.test(phone);
+    }
+
+    if (!validatePhoneNumber(phone)) {
+      return next(new ErrorHandler("Invalid Phone number.", 400));
+    }
+
+    try {
+      const userAllEntries = await User.find({
+        $or:[
+          {
+            email,accountVerified:false
+          },
+          {
+            phone, accountVerified:false
+          },
+        ],
+      }).sort({createdAt: -1});
+
+      if(!userAllEntries){
+        return next(new ErrorHandler("User not found",400))
+      }
+
+      let user ;
+      if(userAllEntries.length > 1){
+        user = userAllEntries[0];
+
+        await User.deleteMany({
+          _id:{$ne: user,_id},
+          $or:[
+            {phone,accountVerified:false},
+            {email,accountVerified:false}
+          ]
+        })
+      } else{
+        user =  userAllEntries[0];
+
+      }
+
+      if(user.verificationCode !== Number(otp)){
+        return next(new ErrorHandler("Invalid Otp.",404));
+      }
+
+      const CurrentTime = Date.now();
+      const verifecationCodeExpire = new Date(user.verificationCodeExpire).getTime() ;
+
+      if (customElements > verifecationCodeExpire) {
+        return next(new ErrorHandler("OTP Expire",400))
+      };
+
+      user.accountVerified = true;
+      user.verificationCode = null;
+      user.verificationCodeExpire = null;
+      await user.save({validateModifiedOnly:true});
+
+      sendToken(user,200,"Account Verified",res);
+
+    } catch (error) {
+      return next(new ErrorHandler("Inertal Server Error.",500))
+    }
+})
