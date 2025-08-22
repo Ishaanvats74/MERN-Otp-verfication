@@ -200,4 +200,33 @@ export const verifyOTP = catchAsyncError(async(req,res,next)=>{
     } catch (error) {
       return next(new ErrorHandler("Inertal Server Error.",500))
     }
+});
+
+
+export const login = catchAsyncError(async(req,res,next)=>{
+  const {email , password} = req.body;
+
+  if (!email || !password){
+    return next(new ErrorHandler("Email and passward are required", 400));
+  };
+
+  const user = await User.findOne({email , accountVerified: true }).select("+password");
+  if(!user){
+    return next(new ErrorHandler("Email or Password in wrong",400));
+  };
+
+   const isPasswordMatched = await user.comparePassword(password);
+
+   if (!isPasswordMatched){
+    return next(new ErrorHandler("Email or Password in wrong",400));
+   };
+
+   sendToken(user,200,"User logged In success.", res);
+});
+
+export const logout = catchAsyncError(async (req,res,next) => {
+  res.status(200).cookie("token", "", {
+     expires: new Date(Date.now()),
+      httpOnly: true,
+  }).json({success: true,message: "logout success"})
 })
