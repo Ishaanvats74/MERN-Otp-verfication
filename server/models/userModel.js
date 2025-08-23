@@ -45,7 +45,7 @@ userSchema.methods.generateVerificationCode = async function () {
   }
   const verificationCode = generateRandomFiveDigitNumber();
   this.verificationCode = verificationCode;
-  this.verificationCodeExpire = Date.now() + 5 * 60 * 1000;
+  this.verificationCodeExpire = Date.now() + 10 * 60 * 1000;
   return verificationCode;
 };
 
